@@ -29,12 +29,14 @@ function FiltersSection() {
   const getPriceIntervals = (maxPrice) => {
     const minInterval = 0;
     const maxInterval = Math.round(maxPrice / PRICE_INTERVAL_STEP) * PRICE_INTERVAL_STEP;
-    const intervalsCount = (maxInterval / PRICE_INTERVAL_STEP) || 1;
 
-    let intervals = [];
+    let intervals = {};
     for (let i = minInterval; i < maxInterval; i+=PRICE_INTERVAL_STEP) {
       const intervalKey = `${i}-${i+PRICE_INTERVAL_STEP}`;
-      intervals.push(intervalKey);
+      intervals = {...intervals, [intervalKey]: {
+        minIntervalValue: i,
+        maxIntervalValue: i + PRICE_INTERVAL_STEP,
+      }}
     }
 
     return intervals;
@@ -42,19 +44,41 @@ function FiltersSection() {
 
   const getPriceOptions = albums => {
     const maxPrice = getMaxPrice(albums);
-    console.log(getPriceIntervals(maxPrice));
+    const priceIntervals = getPriceIntervals(maxPrice);
+    const albumsByPrice = _.chain(albums)
+      .groupBy(o => {
+        let intervalLabel = '0-5';
+        // TODO - think of something better
+        const matchingInterval = _.find(priceIntervals, (i, key) => {
+          const price = _.chain(o).get('price.amount', 0).toNumber().value();
+          if (i.minIntervalValue < price && price < i.maxIntervalValue) {
+            intervalLabel = key;
+            return true;
+          };
+          return false;
+        });
+        return intervalLabel;
+      })
+      .map((albumsByPrice, priceInterval) => ({
+        [priceInterval]: _.get(albumsByPrice, 'length', 0)
+      }))
+      .value();
+
+    return albumsByPrice;
   }
 
   const visibleAlbums = !filteredAlbums.length ? albums : filteredAlbums;
-  console.log(getPriceOptions(visibleAlbums));
 
   return (
     <div className="FiltersSection">
       <FiltersCard
         title="Price"
-        // renderOptions={getPriceOptions(visibleAlbums)}
+        options={getPriceOptions(visibleAlbums)}
       />
-      <FiltersCard title="Year" options={getYearOptions(visibleAlbums)} />
+      <FiltersCard 
+        title="Year"
+        options={getYearOptions(visibleAlbums)}
+      />
     </div>
   );
 }
@@ -62,8 +86,8 @@ function FiltersSection() {
 function FiltersCard({ title, options }) {
   const renderOptions = () =>
     _.map(options, o => {
-      const year = Object.keys(o)[0];
-      return <FiltersOption label={year} matchingAlbumsCount={o[year]} />
+      const label = Object.keys(o)[0];
+      return <FiltersOption label={label} matchingAlbumsCount={o[label]} />
     });
 
   return (
