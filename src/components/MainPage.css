@@ -1,0 +1,15 @@
+.MainPage {
+  display: flex;
+  flex-flow: row;
+  padding: 50px;
+}
+
+.FiltersSection {
+  flex-basis: 30%;
+  padding: 0 20px;
+}
+
+.AlbumsListSection {
+  flex-basis: 70%;
+  margin: 0 60px 0 20px;
+}

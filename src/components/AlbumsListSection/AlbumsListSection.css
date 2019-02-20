@@ -1,0 +1,4 @@
+.AlbumsList {
+  display: flex;
+  flex-flow: column;
+}

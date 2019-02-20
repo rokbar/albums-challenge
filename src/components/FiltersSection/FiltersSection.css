@@ -1,0 +1,35 @@
+.FiltersSection {
+  display: flex;
+  flex-flow: column;
+}
+
+.FiltersCard {
+  display: flex;
+  flex-flow: column;
+  border: solid black 1px;
+  min-height: 100px;
+  margin-bottom: 50px;
+  padding: 10px 10px 10px 20px;
+}
+
+.FiltersCard__header {
+  align-self: flex-start;
+  font-size: 20px;
+}
+
+.FiltersOption {
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+  font-size: 16px;
+  padding: 5px 0;
+}
+
+.FiltersOption__checkbox {
+  transform: scale(1.2);
+  align-self: flex-end;
+}
+
+.FiltersOption__label, .FiltersOption__count {
+  padding-left: 3px;
+}

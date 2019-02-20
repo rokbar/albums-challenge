@@ -1,9 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useGlobal, useState, useEffect } from "reactn";
 import _ from "lodash";
-import { getAlbums } from "../api/albums";
+import AlbumCard from "./AlbumCard";
+import { getAlbums } from "../../api/albums";
+import "./AlbumsListSection.css";
 
 function AlbumsListSection() {
-  const [albums, setAlbums] = useState([]);
+  return (
+    <div className="AlbumsListSection">
+      <AlbumsList />
+    </div>
+  );
+}
+
+function AlbumsList() {
+  const [albums, setAlbums] = useGlobal("albums");
   const [isFetching, setIsFetching] = useState(false);
 
   useEffect(() => {
@@ -15,17 +25,9 @@ function AlbumsListSection() {
     })();
   }, []);
 
-  const renderAlbum = ({ title, image, price: { label } }) => (
-    <div>
-      <img src={image} />
-      <span>{title}</span>
-      <span>{label}</span>
-    </div>
-  );
-
   const renderAlbumsList = () =>
     albums.length ? (
-      _.map(albums, o => renderAlbum(o))
+      _.map(albums, o => <AlbumCard {...o} />)
     ) : (
       <span>No albums found</span>
     );
@@ -33,9 +35,7 @@ function AlbumsListSection() {
   const loaderWrapper = renderFunc =>
     isFetching ? <span>Loading...</span> : renderFunc();
 
-  return (
-    <div className="AlbumsListSection">{loaderWrapper(renderAlbumsList)}</div>
-  );
+  return <div className="AlbumsList">{loaderWrapper(renderAlbumsList)}</div>;
 }
 
 export default AlbumsListSection;
