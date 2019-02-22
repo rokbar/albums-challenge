@@ -14,7 +14,11 @@ function AlbumsListSection() {
 
 function AlbumsList() {
   const [albums, setAlbums] = useGlobal("albums");
+  const [filteredAlbums] = useGlobal("filteredAlbums");
+  const [isFiltered] = useGlobal("isFiltered");
   const [isFetching, setIsFetching] = useState(false);
+
+  const visibleAlbums = isFiltered ? filteredAlbums : albums;
 
   useEffect(() => {
     (async () => {
@@ -26,8 +30,8 @@ function AlbumsList() {
   }, []);
 
   const renderAlbumsList = () =>
-    albums.length ? (
-      _.map(albums, o => <AlbumCard {...o} />)
+    visibleAlbums.length ? (
+      _.map(visibleAlbums, o => <AlbumCard {...o} />)
     ) : (
       <span>No albums found</span>
     );

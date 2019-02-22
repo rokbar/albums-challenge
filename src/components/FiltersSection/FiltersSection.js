@@ -1,4 +1,4 @@
-import React, { useGlobal } from "reactn";
+import React, { useGlobal, useState, useEffect } from "reactn";
 import _ from "lodash";
 import "./FiltersSection.css";
 
@@ -7,10 +7,92 @@ const PRICE_INTERVAL_STEP = 5;
 function FiltersSection() {
   const [albums] = useGlobal("albums");
   const [filteredAlbums, setFilteredAlbums] = useGlobal("filteredAlbums");
-  const [firstLevelFilter, setFirstLevelFilter] = useGlobal("firstLevelFilter");
-  const [secondLevelFilter, setSecondLevelFilter] = useGlobal(
-    "secondLevelFilter"
-  );
+  const [isFiltered, setIsFiltered] = useGlobal("isFiltered");
+  const [priceFilters, setPriceFilters] = useState([]);
+  const [yearFilters, setYearFilters] = useState([]);
+
+  useEffect(() => {
+    const isFiltered = yearFilters.length || priceFilters.length;
+    const filteredAlbumsByBothFilters = filterAlbumsByBothFilters(albums, yearFilters, priceFilters);
+    setFilteredAlbums(filteredAlbumsByBothFilters);
+    setIsFiltered(isFiltered);
+  }, [yearFilters, priceFilters]);
+
+  const handleOnFilterCheck = (
+    currentState,
+    setStateFunc
+  ) => label => isChecked =>
+    isChecked
+      ? setStateFunc([...currentState, label])
+      : setStateFunc(_.filter(currentState, o => o !== label));
+
+  const parsePriceInterval = priceInterval => priceInterval.split("-");
+
+  const filterAlbumsBySinglePrice = (albums, priceInterval) => {
+    const [minIntervalValue, maxIntervalValue] = parsePriceInterval(
+      priceInterval
+    );
+    return _.filter(albums, o => {
+      const price = _.chain(o)
+        .get("price.amount", 0)
+        .toNumber()
+        .value();
+      return minIntervalValue <= price && price < maxIntervalValue;
+    });
+  };
+
+  const filterAlbumsByMultiplePrices = (albums, priceIntervals) => {
+    const multipleFilterResults = _.reduce(
+      priceIntervals,
+      (result, interval) => {
+        const filteredAlbums = filterAlbumsBySinglePrice(albums, interval);
+        result.push(filteredAlbums);
+        return result;
+      },
+      []
+    );
+
+    return _.unionBy(...multipleFilterResults, "id");
+  };
+
+  const filterAlbumsBySingleYear = (albums, year) => {
+    const yearNumber = _.toNumber(year);
+    return _.filter(albums, o => _.toNumber(_.toNumber(o.year) === yearNumber));
+  };
+
+  const filterAlbumsByMultipleYears = (albums, years) => {
+    const multipleFilterResults = _.reduce(
+      years,
+      (result, year) => {
+        const filteredAlbums = filterAlbumsBySingleYear(albums, year);
+        result.push(filteredAlbums);
+        return result;
+      },
+      []
+    );
+
+    return _.unionBy(...multipleFilterResults, "id");
+  };
+
+  const filterAlbumsByBothFilters = (allAlbums, years, priceIntervals) => {
+    const albumsFilteredByPrices = priceIntervals.length && filterAlbumsByMultiplePrices(
+      allAlbums,
+      priceIntervals
+    );
+    const albumsFilteredByYears = years.length && filterAlbumsByMultipleYears(allAlbums, years);
+
+    if (albumsFilteredByPrices.length && albumsFilteredByYears.length) {
+      return _.intersectionBy(
+        albumsFilteredByPrices,
+        albumsFilteredByYears,
+        "id"
+      );
+    } else if (albumsFilteredByPrices || albumsFilteredByYears) {
+      return albumsFilteredByPrices || albumsFilteredByYears;
+    }
+
+    return allAlbums;
+  };
 
   const getYearOptions = albums =>
     _.chain(albums)
@@ -18,8 +100,8 @@ function FiltersSection() {
       .map((albumsByYear, year) => ({
         [year]: {
           length: _.get(albumsByYear, "length", 0),
-          sortKey: _.toNumber(year),
-        },
+          sortKey: _.toNumber(year)
+        }
       }))
       .sortBy(o => Object.values(o)[0].sortKey)
       .value();
@@ -63,7 +145,7 @@ function FiltersSection() {
           .value();
         // TODO - think of something better
         const matchingInterval = _.find(priceIntervals, (i, key) => {
-          if (i.minIntervalValue < price && price < i.maxIntervalValue) {
+          if (i.minIntervalValue <= price && price < i.maxIntervalValue) {
             intervalLabel = key;
             return true;
           }
@@ -72,13 +154,13 @@ function FiltersSection() {
         return intervalLabel;
       })
       .map((albumsByPrice, priceInterval) => {
-        const [minIntervalValue, maxIntervalValue] = priceInterval.split('-');
+        const [minIntervalValue, maxIntervalValue] = priceInterval.split("-");
         return {
           [priceInterval]: {
             length: _.get(albumsByPrice, "length", 0),
-            sortKey: _.toNumber(maxIntervalValue),
-          },
-        }
+            sortKey: _.toNumber(maxIntervalValue)
+          }
+        };
       })
       .sortBy(o => Object.values(o)[0].sortKey)
       .value();
@@ -86,21 +168,33 @@ function FiltersSection() {
     return albumsByPrice;
   };
 
-  const visibleAlbums = !filteredAlbums.length ? albums : filteredAlbums;
-
   return (
     <div className="FiltersSection">
-      <FiltersCard title="Price" options={getPriceOptions(visibleAlbums)} />
-      <FiltersCard title="Year" options={getYearOptions(visibleAlbums)} />
+      <FiltersCard
+        title="Price"
+        options={getPriceOptions(albums)}
+        handleOnFilterCheck={handleOnFilterCheck(priceFilters, setPriceFilters)}
+      />
+      <FiltersCard
+        title="Year"
+        options={getYearOptions(albums)}
+        handleOnFilterCheck={handleOnFilterCheck(yearFilters, setYearFilters)}
+      />
     </div>
   );
 }
 
-function FiltersCard({ title, options }) {
+function FiltersCard({ title, options, handleOnFilterCheck = () => {} }) {
   const renderOptions = () =>
     _.map(options, o => {
       const label = Object.keys(o)[0];
-      return <FiltersOption label={label} matchingAlbumsCount={o[label].length} />;
+      return (
+        <FiltersOption
+          label={label}
+          matchingAlbumsCount={o[label].length}
+          handleOnFilterCheck={handleOnFilterCheck(label)}
+        />
+      );
     });
 
   return (
@@ -111,10 +205,27 @@ function FiltersCard({ title, options }) {
   );
 }
 
-function FiltersOption({ label = "", matchingAlbumsCount = 0 }) {
+function FiltersOption({
+  label = "",
+  matchingAlbumsCount = 0,
+  handleOnFilterCheck = () => {}
+}) {
+  const [isChecked, setIsChecked] = useState(false);
+
+  const handleOnChange = () => {
+    const nextState = !isChecked;
+    handleOnFilterCheck(nextState);
+    setIsChecked(nextState);
+  };
+
   return (
     <div className="FiltersOption">
-      <input className="FiltersOption__checkbox" type="checkbox" />
+      <input
+        className="FiltersOption__checkbox"
+        type="checkbox"
+        onChange={handleOnChange}
+        valued={isChecked}
+      />
       <span className="FiltersOption__label">{label}</span>
       <span className="FiltersOption__count">({matchingAlbumsCount})</span>
     </div>

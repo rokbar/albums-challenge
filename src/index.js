@@ -4,15 +4,11 @@ import './index.css';
 import MainPage from './components/MainPage';
 import * as serviceWorker from './serviceWorker';
 
-const YEAR_FILTER = 1;
-const PRICE_FILTER = 2;
-
 // initialize global state;
 setGlobal({
   albums: [],
   filteredAlbums: [],
-  firstLevelFilter: null,
-  secondLevelFilter: null,
+  isFiltered: false,
 });
 
 ReactDOM.render(<MainPage />, document.getElementById('root'));

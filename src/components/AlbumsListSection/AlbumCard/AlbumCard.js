@@ -1,12 +1,15 @@
 import React from "react";
 import './AlbumCard.css';
 
-function AlbumCard({ title, image, price: { label } }) {
+function AlbumCard({ title, image, year, price: { label } }) {
   return (
     <div className="AlbumCard">
       <img className="AlbumCard__image" src={image} />
       <span>{title}</span>
-      <span className="AlbumCard__price">{label}</span>
+      <div className="AlbumCard__details">
+        <span className="AlbumCard__price">{label}</span>
+        <span className="AlbumCard__year">{year}</span>
+      </div>   
     </div>
   );
 }
