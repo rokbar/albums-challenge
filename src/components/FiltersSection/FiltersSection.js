@@ -13,7 +13,11 @@ function FiltersSection() {
 
   useEffect(() => {
     const isFiltered = yearFilters.length || priceFilters.length;
-    const filteredAlbumsByBothFilters = filterAlbumsByBothFilters(albums, yearFilters, priceFilters);
+    const filteredAlbumsByBothFilters = filterAlbumsByBothFilters(
+      albums,
+      yearFilters,
+      priceFilters
+    );
     setFilteredAlbums(filteredAlbumsByBothFilters);
     setIsFiltered(isFiltered);
   }, [yearFilters, priceFilters]);
@@ -75,11 +79,11 @@ function FiltersSection() {
   };
 
   const filterAlbumsByBothFilters = (allAlbums, years, priceIntervals) => {
-    const albumsFilteredByPrices = priceIntervals.length && filterAlbumsByMultiplePrices(
-      allAlbums,
-      priceIntervals
-    );
-    const albumsFilteredByYears = years.length && filterAlbumsByMultipleYears(allAlbums, years);
+    const albumsFilteredByPrices =
+      priceIntervals.length &&
+      filterAlbumsByMultiplePrices(allAlbums, priceIntervals);
+    const albumsFilteredByYears =
+      years.length && filterAlbumsByMultipleYears(allAlbums, years);
 
     if (albumsFilteredByPrices.length && albumsFilteredByYears.length) {
       return _.intersectionBy(
@@ -94,7 +98,20 @@ function FiltersSection() {
     return allAlbums;
   };
 
-  const getYearOptions = albums =>
+  const getCheckedYearFiltersOptions = yearFilters => {
+    const yearOptions = _.map(yearFilters, year => {
+      return {
+        [year]: {
+          length: 0,
+          sortKey: _.toNumber(year)
+        }
+      };
+    });
+
+    return yearOptions;
+  };
+
+  const getYearOptions = (albums, yearFilters) =>
     _.chain(albums)
       .groupBy("year")
       .map((albumsByYear, year) => ({
@@ -103,6 +120,18 @@ function FiltersSection() {
           sortKey: _.toNumber(year)
         }
       }))
+      .concat(getCheckedYearFiltersOptions(yearFilters))
+      // we need to get currently checked filters in order to display them (even if there are no search results)
+      .uniqWith((o1, o2) => {
+        const obj1 = Object.values(o1)[0];
+        const obj2 = Object.values(o2)[0];
+        if (obj1.sortKey !== obj2.sortKey) {
+          return false;
+        }
+        if (obj1.sortKey === obj2.sortKey) {
+          return obj1.length < obj2.length;
+        }
+      })
       .sortBy(o => Object.values(o)[0].sortKey)
       .value();
 
@@ -116,7 +145,7 @@ function FiltersSection() {
   const getPriceIntervals = maxPrice => {
     const minInterval = 0;
     const maxInterval =
-      Math.round(maxPrice / PRICE_INTERVAL_STEP) * PRICE_INTERVAL_STEP;
+      Math.ceil(maxPrice / PRICE_INTERVAL_STEP) * PRICE_INTERVAL_STEP;
 
     let intervals = {};
     for (let i = minInterval; i < maxInterval; i += PRICE_INTERVAL_STEP) {
@@ -133,7 +162,23 @@ function FiltersSection() {
     return intervals;
   };
 
-  const getPriceOptions = albums => {
+  const getCheckedPriceFiltersOptions = priceFilters => {
+    const priceOptions = _.map(priceFilters, priceInterval => {
+      const [minIntervalValue, maxIntervalValue] = parsePriceInterval(
+        priceInterval
+      );
+      return {
+        [priceInterval]: {
+          length: 0,
+          sortKey: _.toNumber(maxIntervalValue)
+        }
+      };
+    });
+
+    return priceOptions;
+  };
+
+  const getPriceOptions = (albums, priceFilters) => {
     const maxPrice = getMaxPrice(albums);
     const priceIntervals = getPriceIntervals(maxPrice);
     const albumsByPrice = _.chain(albums)
@@ -162,35 +207,70 @@ function FiltersSection() {
           }
         };
       })
+      // we need to get currently checked filters in order to display them (even if there are no search results)
+      .concat(getCheckedPriceFiltersOptions(priceFilters))
+      .uniqWith((o1, o2) => {
+        const obj1 = Object.values(o1)[0];
+        const obj2 = Object.values(o2)[0];
+        if (obj1.sortKey !== obj2.sortKey) {
+          return false;
+        }
+        if (obj1.sortKey === obj2.sortKey) {
+          return obj1.length < obj2.length;
+        }
+      })
       .sortBy(o => Object.values(o)[0].sortKey)
       .value();
 
     return albumsByPrice;
   };
 
+  const visibleAlbums = isFiltered ? filteredAlbums : albums;
+
   return (
     <div className="FiltersSection">
       <FiltersCard
         title="Price"
-        options={getPriceOptions(albums)}
+        selectedFilters={priceFilters}
+        options={getPriceOptions(
+          yearFilters.length
+            ? filterAlbumsByMultipleYears(visibleAlbums, yearFilters)
+            : albums,
+          priceFilters
+        )}
         handleOnFilterCheck={handleOnFilterCheck(priceFilters, setPriceFilters)}
       />
       <FiltersCard
         title="Year"
-        options={getYearOptions(albums)}
+        selectedFilters={yearFilters}
+        options={getYearOptions(
+          priceFilters.length
+            ? filterAlbumsByMultiplePrices(visibleAlbums, priceFilters)
+            : albums,
+          yearFilters
+        )}
         handleOnFilterCheck={handleOnFilterCheck(yearFilters, setYearFilters)}
       />
     </div>
   );
 }
 
-function FiltersCard({ title, options, handleOnFilterCheck = () => {} }) {
+function FiltersCard({
+  title,
+  selectedFilters,
+  options,
+  handleOnFilterCheck = () => {}
+}) {
+  const isOptionSelected = (selectedFilters, label) =>
+    _.some(selectedFilters, o => o == label); // we want to coerce in case its price filter (2019 == '2019')
+
   const renderOptions = () =>
     _.map(options, o => {
       const label = Object.keys(o)[0];
       return (
         <FiltersOption
           label={label}
+          isChecked={isOptionSelected(selectedFilters, label)}
           matchingAlbumsCount={o[label].length}
           handleOnFilterCheck={handleOnFilterCheck(label)}
         />
@@ -207,15 +287,13 @@ function FiltersCard({ title, options, handleOnFilterCheck = () => {} }) {
 
 function FiltersOption({
   label = "",
+  isChecked = false,
   matchingAlbumsCount = 0,
   handleOnFilterCheck = () => {}
 }) {
-  const [isChecked, setIsChecked] = useState(false);
-
   const handleOnChange = () => {
     const nextState = !isChecked;
     handleOnFilterCheck(nextState);
-    setIsChecked(nextState);
   };
 
   return (
@@ -224,7 +302,7 @@ function FiltersOption({
         className="FiltersOption__checkbox"
         type="checkbox"
         onChange={handleOnChange}
-        valued={isChecked}
+        checked={isChecked}
       />
       <span className="FiltersOption__label">{label}</span>
       <span className="FiltersOption__count">({matchingAlbumsCount})</span>
