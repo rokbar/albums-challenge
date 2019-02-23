@@ -1,6 +1,6 @@
 import React, { useGlobal, useEffect } from "reactn";
 import _ from "lodash";
-import logic from "../logic/filtering";
+import logic from "../logic";
 
 const {
   filterAlbumsByBothFiltersGroups,

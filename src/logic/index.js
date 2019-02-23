@@ -178,7 +178,7 @@ const getYearFilterOptions = ({
       .concat(_getSelectedYearFiltersOptions(yearFilters))
       // we need to get currently checked filters in order to display them (even if there are no search results)
       .uniqWith(_uniqFilterOptionsComparator)
-      .sortBy(o => Object.values(o)[0].sortKey)
+      .orderBy(o => Object.values(o)[0].sortKey, 'desc')
       .value()
   );
 };
