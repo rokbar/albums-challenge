@@ -4,6 +4,7 @@ import _ from "lodash";
 import AlbumCard from "./AlbumCard";
 import { getAlbums } from "../../api/albums";
 import Album from "../../types/Album";
+import { GlobalState, State } from "../../types/State";
 import "./AlbumsListSection.css";
 
 function AlbumsListSection() {
@@ -15,19 +16,10 @@ function AlbumsListSection() {
 }
 
 function AlbumsList() {
-  const [albums, setAlbums]: [Album[], (value: Album[]) => void] = useGlobal(
-    "albums"
-  );
-  const [filteredAlbums]: [Album[], (value: Album[]) => void] = useGlobal(
-    "filteredAlbums"
-  );
-  const [isFiltered]: [boolean, (value: boolean) => void] = useGlobal(
-    "isFiltered"
-  );
-  const [isFetching, setIsFetching]: [
-    boolean,
-    (value: boolean) => void
-  ] = useState(false);
+  const [albums, setAlbums]: GlobalState<Album[]> = useGlobal("albums");
+  const [filteredAlbums]: GlobalState<Album[]> = useGlobal("filteredAlbums");
+  const [isFiltered]: GlobalState<boolean> = useGlobal("isFiltered");
+  const [isFetching, setIsFetching]: State<boolean> = useState(false);
 
   const visibleAlbums: Album[] = isFiltered ? filteredAlbums : albums;
 

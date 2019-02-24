@@ -1,9 +1,14 @@
-export interface PriceFilterOptionMap {
+export type PriceFilterOptionMap = {
   [priceInterval: string] : FilterOption;
 }
 
-export interface YearFilterOptionMap {
-  [year: string]: FilterOption ;
+export type YearFilterOptionMap = {
+  [year: string]: FilterOption;
+}
+
+export type FilterOptions = {
+  priceOptions: PriceFilterOptionMap[];
+  yearOptions: YearFilterOptionMap[];
 }
 
 export default class FilterOption {

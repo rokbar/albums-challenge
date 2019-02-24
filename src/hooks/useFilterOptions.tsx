@@ -2,35 +2,25 @@ import { useGlobal } from "reactn";
 import { useEffect } from "react";
 import logic from "../logic";
 import Album from "../types/Album";
+import { FilterOptions, YearFilterOptionMap, PriceFilterOptionMap } from "../types/FilterOption";
+import { GlobalState } from "../types/State";
 
-const {
-  filterAlbumsByBothFiltersGroups,
-  getPriceFilterOptions,
-  getYearFilterOptions
-} = logic;
+const { filterAlbumsByBothFiltersGroups, getPriceFilterOptions, getYearFilterOptions } = logic;
 
 function useFilterOptions({
   yearFilters,
   priceFilters
 }: {
-  yearFilters: number[];
+  yearFilters: (string | number)[];
   priceFilters: string[];
-}) {
-  const [albums]: [Album[], (value: Album[]) => void] = useGlobal("albums");
-
-  const [filteredAlbums, setFilteredAlbums]: [
-    Album[],
-    (value: Album[]) => void
-  ] = useGlobal("filteredAlbums");
-  
-  const [isFiltered, setIsFiltered]: [
-    boolean | number,
-    (value: boolean | number) => void
-  ] = useGlobal("isFiltered");
+}): FilterOptions {
+  const [albums]: GlobalState<Album[]> = useGlobal("albums");
+  const [filteredAlbums, setFilteredAlbums]: GlobalState<Album[]> = useGlobal("filteredAlbums");
+  const [isFiltered, setIsFiltered]: GlobalState<boolean | number> = useGlobal("isFiltered");
 
   useEffect(() => {
-    const isFiltered = yearFilters.length || priceFilters.length;
-    const filteredAlbumsByBothFilters = filterAlbumsByBothFiltersGroups(
+    const isFiltered: number | boolean = yearFilters.length || priceFilters.length;
+    const filteredAlbumsByBothFilters: Album[] = filterAlbumsByBothFiltersGroups(
       albums,
       yearFilters,
       priceFilters
@@ -39,15 +29,15 @@ function useFilterOptions({
     setIsFiltered(isFiltered);
   }, [yearFilters, priceFilters]);
 
-  const visibleAlbums = isFiltered ? filteredAlbums : albums;
+  const visibleAlbums: Album[] = isFiltered ? filteredAlbums : albums;
 
-  const priceOptions = getPriceFilterOptions({
+  const priceOptions: PriceFilterOptionMap[] = getPriceFilterOptions({
     allAlbums: albums,
     visibleAlbums,
     priceFilters,
     yearFilters
   });
-  const yearOptions = getYearFilterOptions({
+  const yearOptions: YearFilterOptionMap[] = getYearFilterOptions({
     allAlbums: albums,
     visibleAlbums,
     priceFilters,

@@ -1,42 +1,24 @@
-import React, { useState, Dispatch } from "react";
+import React, { useState, ReactElement } from "react";
 import _ from "lodash";
 import useFilterOptions from "../../hooks/useFilterOptions";
-import Album from "../../types/Album";
-import {
-  PriceFilterOptionMap,
-  YearFilterOptionMap
-} from "../../types/FilterOption";
+import { State } from "../../types/State";
+import { PriceFilterOptionMap, YearFilterOptionMap, FilterOptions } from "../../types/FilterOption";
 import "./FiltersSection.css";
 
-function FiltersSection() {
-  const [priceFilters, setPriceFilters]: [
-    string[],
-    Dispatch<any>
-  ] = useState([]);
-
-  const [yearFilters, setYearFilters]: [
-    number[],
-    Dispatch<any>
-  ] = useState([]);
-  
-  const {
-    priceOptions,
-    yearOptions
-  }: {
-    priceOptions: PriceFilterOptionMap[];
-    yearOptions: YearFilterOptionMap[];
-  } = useFilterOptions({
+function FiltersSection(): ReactElement {
+  const [priceFilters, setPriceFilters]: State<string[]> = useState([]);
+  const [yearFilters, setYearFilters]: State<(number | string)[]> = useState([]);
+  const { priceOptions, yearOptions }: FilterOptions = useFilterOptions({
     yearFilters,
     priceFilters
   });
 
-  const handleOnFilterSelect = (
-    currentFilterState: (string | number)[],
-    setStateFunc: Dispatch<(string | number)[]>
-  ) => (filterLabel: string) => (isFilterOptionSelected: boolean | number) =>
+  const handleOnFilterSelect = ([currentState, setStateFunc]: State<(string | number)[]>) => (
+    filterLabel: string
+  ) => (isFilterOptionSelected: boolean | number) =>
     isFilterOptionSelected
-      ? setStateFunc([...currentFilterState, filterLabel])
-      : setStateFunc(_.filter(currentFilterState, o => o !== filterLabel));
+      ? setStateFunc([...currentState, filterLabel])
+      : setStateFunc(_.filter(currentState, o => o !== filterLabel));
 
   return (
     <div className="FiltersSection">
@@ -44,36 +26,37 @@ function FiltersSection() {
         title="Price"
         selectedFilters={priceFilters}
         options={priceOptions}
-        handleOnFilterSelect={handleOnFilterSelect(
-          priceFilters,
-          setPriceFilters
-        )}
+        handleOnFilterSelect={handleOnFilterSelect([priceFilters, setPriceFilters])}
       />
       <FiltersCard
         title="Year"
         selectedFilters={yearFilters}
         options={yearOptions}
-        handleOnFilterSelect={handleOnFilterSelect(yearFilters, setYearFilters)}
+        handleOnFilterSelect={handleOnFilterSelect([yearFilters, setYearFilters])}
       />
     </div>
   );
 }
+
+type FiltersCardProps = {
+  title: string;
+  selectedFilters: (string | number)[];
+  options: (PriceFilterOptionMap | YearFilterOptionMap)[];
+  handleOnFilterSelect: (filterLabel: string) => (isFilterOptionSelected: number | boolean) => void;
+};
 
 function FiltersCard({
   title,
   selectedFilters,
   options,
   handleOnFilterSelect = () => () => {}
-}: {
-  title: string,
-  selectedFilters: (string | number)[],
-  options: (PriceFilterOptionMap | YearFilterOptionMap)[],
-  handleOnFilterSelect: (filterLabel: string) => (isFilterOptionSelected: number | boolean) => void
-}) {
-  const isOptionSelected = (selectedFilters: (string | number)[], filterLabel: string) =>
+}: FiltersCardProps): ReactElement {
+  const isOptionSelected = (selectedFilters: (string | number)[], filterLabel: string): boolean =>
     _.some(selectedFilters, s => s === filterLabel);
 
-  const renderFilterOptions = (options: (PriceFilterOptionMap | YearFilterOptionMap)[]) =>
+  const renderFilterOptions = (
+    options: (PriceFilterOptionMap | YearFilterOptionMap)[]
+  ): ReactElement[] =>
     _.map(options, o => {
       const filterLabel = Object.keys(o)[0];
       return (
@@ -94,17 +77,19 @@ function FiltersCard({
   );
 }
 
+type FiltersOptionProps = {
+  filterLabel: string;
+  isSelected: boolean | undefined;
+  matchingAlbumsCount: number;
+  handleOnFilterSelect: (isFilterOptionSelected: number | boolean) => void;
+};
+
 function FiltersOption({
   filterLabel = "",
   isSelected = false,
   matchingAlbumsCount = 0,
   handleOnFilterSelect = () => {}
-}: {
-  filterLabel: string,
-  isSelected: boolean | undefined,
-  matchingAlbumsCount: number,
-  handleOnFilterSelect: (isFilterOptionSelected: number | boolean)=> void,
-}) {
+}: FiltersOptionProps): ReactElement {
   const handleOnChange = () => {
     const nextState = !isSelected;
     handleOnFilterSelect(nextState);
