@@ -2,23 +2,31 @@ import _ from "lodash";
 import FilterOption, { PriceFilterOptionMap, YearFilterOptionMap } from "../types/FilterOption";
 import Album from "../types/Album";
 
-const PRICE_INTERVAL_STEP = 5;
-
-type PriceIntervalObject = {
+export type PriceIntervalObject = {
+  intervalKey: string;
   minIntervalValue: number;
   maxIntervalValue: number;
 };
+
+type getFilterOptionsParams = {
+  allAlbums: Album[];
+  visibleAlbums: Album[];
+  priceFilters: string[];
+  yearFilters: (string | number)[];
+};
+
+const PRICE_INTERVAL_STEP = 5;
 
 // =============================================
 // Helpers
 // =============================================
 
-const _parsePriceInterval = (priceInterval: string): number[] => {
+export const _parsePriceInterval = (priceInterval: string): number[] => {
   const [minIntervalValue, maxIntervalValue]: string[] = priceInterval.split("-");
   return [_.toNumber(minIntervalValue), _.toNumber(maxIntervalValue)];
 };
 
-const _uniqFilterOptionsComparator = (
+export const _uniqFilterOptionsComparator = (
   o1: PriceFilterOptionMap | YearFilterOptionMap,
   o2: PriceFilterOptionMap | YearFilterOptionMap
 ): boolean => {
@@ -31,27 +39,25 @@ const _uniqFilterOptionsComparator = (
   }
 };
 
-const _getPriceIntervalsArrayByMaxPrice = (maxPrice: number): object => {
+export const _getPriceIntervalsArrayByMaxPrice = (maxPrice: number): PriceIntervalObject[] => {
   const minInterval = 0;
   const maxInterval = Math.ceil(maxPrice / PRICE_INTERVAL_STEP) * PRICE_INTERVAL_STEP;
 
-  let intervals = {};
+  let intervals: PriceIntervalObject[] = [];
   for (let i = minInterval; i < maxInterval; i += PRICE_INTERVAL_STEP) {
-    const intervalKey = `${i}-${i + PRICE_INTERVAL_STEP}`;
+    const intervalKey: string = `${i}-${i + PRICE_INTERVAL_STEP}`;
     const priceInervalObject: PriceIntervalObject = {
+      intervalKey,
       minIntervalValue: i,
       maxIntervalValue: i + PRICE_INTERVAL_STEP
     };
-    intervals = {
-      ...intervals,
-      [intervalKey]: priceInervalObject
-    };
+    intervals.push(priceInervalObject);
   }
 
   return intervals;
 };
 
-const _getMaxPrice = (albums: Album[]): number =>
+export const _getMaxPrice = (albums: Album[]): number =>
   _.chain(albums)
     .maxBy(({ price: { amount = 0 } }) => Number(amount))
     .get("price.amount", 0)
@@ -62,48 +68,47 @@ const _getMaxPrice = (albums: Album[]): number =>
 // Methods for filtering albums by price filters
 // =============================================
 
-const _filterAlbumsBySinglePriceFilter = (albums: Album[], priceInterval: string): Album[] => {
-  const [minIntervalValue, maxIntervalValue]: number[] = _parsePriceInterval(priceInterval);
-  return _.filter(albums, o => {
-    const price: number = _.chain(o)
-      .get("price.amount", 0)
-      .toNumber()
-      .value();
+export const _doesAlbumIncludeInPriceFilters = (album: Album, priceIntervals: (string)[]): boolean => {
+  const price: number = _.chain(album)
+    .get("price.amount", 0)
+    .toNumber()
+    .value();
+  return _.some(priceIntervals, (priceInterval: string) => {
+    const [minIntervalValue, maxIntervalValue]: number[] = _parsePriceInterval(priceInterval);
     return minIntervalValue <= price && price < maxIntervalValue;
   });
 };
 
-const _filterAlbumsByMultiplePriceFilters = (
+export const _filterAlbumsByMultiplePriceFilters = (
   albums: Album[],
   priceIntervals: string[]
 ): Album[] => {
-  const multipleFilterResults: Array<Array<Album>> = _.reduce(
-    priceIntervals,
-    (result: Array<Array<Album>>, interval: string) => {
-      const filteredAlbums: Album[] = _filterAlbumsBySinglePriceFilter(albums, interval);
-      result.push(filteredAlbums);
+  const multipleFilterResults: Array<Album> = _.reduce(
+    albums,
+    (result: Array<Album>, album: Album) => {
+      const isAlbumIncluded: boolean = _doesAlbumIncludeInPriceFilters(album, priceIntervals);
+      isAlbumIncluded && result.push(album);
       return result;
     },
     []
   );
 
-  // @ts-ignore
-  return _.unionBy(...multipleFilterResults, "id");
+  return multipleFilterResults;
 };
 
-const _getSelectedPriceFiltersOptions = (priceFilters: string[]): PriceFilterOptionMap[] => {
+export const _getSelectedPriceFiltersOptionsMaps = (priceFilters: string[]): PriceFilterOptionMap[] => {
   const priceOptions: PriceFilterOptionMap[] = _.map(priceFilters, (priceInterval: string) =>
-    _getPriceFilterOptionWithMatchingAlbumsMap([], priceInterval)
+    _getMatchingPriceFilterOptionsMap([], priceInterval)
   );
 
   return priceOptions;
 };
 
-const _getPriceFilterOptionWithMatchingAlbumsMap = (
+export const _getMatchingPriceFilterOptionsMap = (
   albumsByPrice: Album[],
   priceInterval: string
 ): PriceFilterOptionMap => {
-  const [minIntervalValue, maxIntervalValue]: number[] = _parsePriceInterval(priceInterval);
+  const [, maxIntervalValue]: number[] = _parsePriceInterval(priceInterval);
 
   return {
     [priceInterval]: new FilterOption(
@@ -113,15 +118,15 @@ const _getPriceFilterOptionWithMatchingAlbumsMap = (
   };
 };
 
-const _getAlbumPriceInterval = (album: Album, priceIntervals: object): string => {
+export const _getAlbumPriceInterval = (album: Album, priceIntervals: PriceIntervalObject[]): string => {
   let intervalLabel: string = "0-5";
   const price = _.chain(album)
     .get("price.amount", 0)
     .toNumber()
     .value();
-  const matchingInterval = _.find(priceIntervals, (o: PriceIntervalObject, key: string) => {
+  _.some(priceIntervals, (o: PriceIntervalObject) => {
     if (o.minIntervalValue <= price && price < o.maxIntervalValue) {
-      intervalLabel = key;
+      intervalLabel = o.intervalKey;
       return true;
     }
     return false;
@@ -134,40 +139,37 @@ const _getAlbumPriceInterval = (album: Album, priceIntervals: object): string =>
 // Methods for filtering albums by year filters
 // ============================================
 
-const _filterAlbumsBySingleYearFilter = (albums: Album[], year: string | number): Album[] => {
-  const yearNumber: number = _.toNumber(year);
-  return _.filter(albums, (o: Album): boolean => _.toNumber(o.year) === yearNumber);
-};
+export const _doesAlbumIncludeInYearFilters = (album: Album, years: (string | number)[]): boolean =>
+  _.some(years, (year: string | number) => album.year === _.toNumber(year));
 
-const _filterAlbumsByMultipleYearFilters = (
+export const _filterAlbumsByMultipleYearFilters = (
   albums: Album[],
   years: (string | number)[]
 ): Album[] => {
-  const multipleFilterResults: Array<Array<Album>> = _.reduce(
-    years,
-    (result: Array<Array<Album>>, year: string | number) => {
-      const filteredAlbums: Album[] = _filterAlbumsBySingleYearFilter(albums, year);
-      result.push(filteredAlbums);
+  const multipleFilterResults: Array<Album> = _.reduce(
+    albums,
+    (result: Array<Album>, album: Album) => {
+      const isAlbumIncluded = _doesAlbumIncludeInYearFilters(album, years);
+      isAlbumIncluded && result.push(album);
       return result;
     },
     []
   );
 
-  // @ts-ignore
-  return _.unionBy(...multipleFilterResults, "id");
+  return multipleFilterResults;
 };
 
-const _getSelectedYearFiltersOptions = (
+export const _getSelectedYearFiltersOptionsMaps = (
   yearFilters: (string | number)[]
 ): YearFilterOptionMap[] => {
   const yearOptions: YearFilterOptionMap[] = _.map(yearFilters, (year: string | number) =>
-    _getYearFilterOptionWithMatchingAlbumsMap([], year)
+    _getMatchingYearFilterOptionMap([], year)
   );
 
   return yearOptions;
 };
 
-const _getYearFilterOptionWithMatchingAlbumsMap = (
+export const _getMatchingYearFilterOptionMap = (
   albumsByYear: Album[],
   year: string | number
 ): YearFilterOptionMap => ({
@@ -177,13 +179,6 @@ const _getYearFilterOptionWithMatchingAlbumsMap = (
 // ============================================
 // Module API methods
 // ============================================
-
-type getFilterOptionsParams = {
-  allAlbums: Album[];
-  visibleAlbums: Album[];
-  priceFilters: string[];
-  yearFilters: (string | number)[];
-};
 
 const getYearFilterOptions = ({
   allAlbums,
@@ -199,8 +194,8 @@ const getYearFilterOptions = ({
 
   const yearsFiltersMap: YearFilterOptionMap[] = _.chain(albums)
     .groupBy("year")
-    .map(_getYearFilterOptionWithMatchingAlbumsMap)
-    .concat(_getSelectedYearFiltersOptions(yearFilters))
+    .map(_getMatchingYearFilterOptionMap)
+    .concat(_getSelectedYearFiltersOptionsMaps(yearFilters))
     // we need to get currently checked filters in order to display them (even if there are no search results)
     .uniqWith(_uniqFilterOptionsComparator)
     .orderBy((o: YearFilterOptionMap) => Object.values(o)[0].sortKey, "desc")
@@ -222,12 +217,12 @@ const getPriceFilterOptions = ({
     : allAlbums;
 
   const maxPrice: number = _getMaxPrice(albums);
-  const priceIntervals: object = _getPriceIntervalsArrayByMaxPrice(maxPrice);
+  const priceIntervals: PriceIntervalObject[] = _getPriceIntervalsArrayByMaxPrice(maxPrice);
   const priceFiltersMap: PriceFilterOptionMap[] = _.chain(albums)
     .groupBy(_.partialRight(_getAlbumPriceInterval, priceIntervals))
-    .map(_getPriceFilterOptionWithMatchingAlbumsMap)
+    .map(_getMatchingPriceFilterOptionsMap)
     // we need to get currently checked filters in order to display them (even if there are no search results)
-    .concat(_getSelectedPriceFiltersOptions(priceFilters))
+    .concat(_getSelectedPriceFiltersOptionsMaps(priceFilters))
     .uniqWith(_uniqFilterOptionsComparator)
     .sortBy(o => Object.values(o)[0].sortKey)
     .value();

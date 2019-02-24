@@ -1,12 +1,14 @@
 import React from "react";
-import './AlbumCard.css';
+import "./AlbumCard.css";
 
-function AlbumCard({ title, image, year, price: { label } }: {
-  title: string,
-  image: string,
-  year: number,
-  price: { label: string }
-}) {
+type AlbumCardProps = {
+  title: string;
+  image: string;
+  year: number;
+  price: { label: string };
+};
+
+function AlbumCard({ title, image, year, price: { label } }: AlbumCardProps) {
   return (
     <div className="AlbumCard">
       <img className="AlbumCard__image" src={image} />
@@ -14,7 +16,7 @@ function AlbumCard({ title, image, year, price: { label } }: {
       <div className="AlbumCard__details">
         <span className="AlbumCard__price">{label}</span>
         <span className="AlbumCard__year">{year}</span>
-      </div>   
+      </div>
     </div>
   );
 }

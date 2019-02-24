@@ -33,7 +33,7 @@ function AlbumsList() {
   }, []);
 
   const renderAlbumsList = () =>
-    visibleAlbums.length ? (
+    _.get(visibleAlbums, "length", 0) ? (
       _.map(visibleAlbums, o => <AlbumCard {...o} />)
     ) : (
       <span>No albums found</span>
