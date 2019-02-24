@@ -1,7 +1,9 @@
-import React, { useGlobal, useState, useEffect } from "reactn";
+import { useGlobal } from "reactn";
+import React, { useState, useEffect, ReactElement } from "react";
 import _ from "lodash";
 import AlbumCard from "./AlbumCard";
 import { getAlbums } from "../../api/albums";
+import Album from "../../types/Album";
 import "./AlbumsListSection.css";
 
 function AlbumsListSection() {
@@ -13,12 +15,21 @@ function AlbumsListSection() {
 }
 
 function AlbumsList() {
-  const [albums, setAlbums] = useGlobal("albums");
-  const [filteredAlbums] = useGlobal("filteredAlbums");
-  const [isFiltered] = useGlobal("isFiltered");
-  const [isFetching, setIsFetching] = useState(false);
+  const [albums, setAlbums]: [Album[], (value: Album[]) => void] = useGlobal(
+    "albums"
+  );
+  const [filteredAlbums]: [Album[], (value: Album[]) => void] = useGlobal(
+    "filteredAlbums"
+  );
+  const [isFiltered]: [boolean, (value: boolean) => void] = useGlobal(
+    "isFiltered"
+  );
+  const [isFetching, setIsFetching]: [
+    boolean,
+    (value: boolean) => void
+  ] = useState(false);
 
-  const visibleAlbums = isFiltered ? filteredAlbums : albums;
+  const visibleAlbums: Album[] = isFiltered ? filteredAlbums : albums;
 
   useEffect(() => {
     (async () => {
@@ -36,7 +47,7 @@ function AlbumsList() {
       <span>No albums found</span>
     );
 
-  const loaderWrapper = renderFunc =>
+  const loaderWrapper = (renderFunc: () => ReactElement[] | ReactElement) =>
     isFetching ? <span>Loading...</span> : renderFunc();
 
   return <div className="AlbumsList">{loaderWrapper(renderAlbumsList)}</div>;

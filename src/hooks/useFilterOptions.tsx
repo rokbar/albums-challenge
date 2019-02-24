@@ -1,6 +1,7 @@
-import React, { useGlobal, useEffect } from "reactn";
-import _ from "lodash";
+import { useGlobal } from "reactn";
+import { useEffect } from "react";
 import logic from "../logic";
+import Album from "../types/Album";
 
 const {
   filterAlbumsByBothFiltersGroups,
@@ -8,10 +9,24 @@ const {
   getYearFilterOptions
 } = logic;
 
-function useFilterOptions({ yearFilters, priceFilters }) {
-  const [albums] = useGlobal("albums");
-  const [filteredAlbums, setFilteredAlbums] = useGlobal("filteredAlbums");
-  const [isFiltered, setIsFiltered] = useGlobal("isFiltered");
+function useFilterOptions({
+  yearFilters,
+  priceFilters
+}: {
+  yearFilters: number[];
+  priceFilters: string[];
+}) {
+  const [albums]: [Album[], (value: Album[]) => void] = useGlobal("albums");
+
+  const [filteredAlbums, setFilteredAlbums]: [
+    Album[],
+    (value: Album[]) => void
+  ] = useGlobal("filteredAlbums");
+  
+  const [isFiltered, setIsFiltered]: [
+    boolean | number,
+    (value: boolean | number) => void
+  ] = useGlobal("isFiltered");
 
   useEffect(() => {
     const isFiltered = yearFilters.length || priceFilters.length;

@@ -1,20 +1,39 @@
-import React, { useState } from "reactn";
+import React, { useState, Dispatch } from "react";
 import _ from "lodash";
 import useFilterOptions from "../../hooks/useFilterOptions";
+import Album from "../../types/Album";
+import {
+  PriceFilterOptionMap,
+  YearFilterOptionMap
+} from "../../types/FilterOption";
 import "./FiltersSection.css";
 
 function FiltersSection() {
-  const [priceFilters, setPriceFilters] = useState([]);
-  const [yearFilters, setYearFilters] = useState([]);
-  const { priceOptions, yearOptions } = useFilterOptions({
+  const [priceFilters, setPriceFilters]: [
+    string[],
+    Dispatch<any>
+  ] = useState([]);
+
+  const [yearFilters, setYearFilters]: [
+    number[],
+    Dispatch<any>
+  ] = useState([]);
+  
+  const {
+    priceOptions,
+    yearOptions
+  }: {
+    priceOptions: PriceFilterOptionMap[];
+    yearOptions: YearFilterOptionMap[];
+  } = useFilterOptions({
     yearFilters,
     priceFilters
   });
 
   const handleOnFilterSelect = (
-    currentFilterState,
-    setStateFunc
-  ) => filterLabel => isFilterOptionSelected =>
+    currentFilterState: (string | number)[],
+    setStateFunc: Dispatch<(string | number)[]>
+  ) => (filterLabel: string) => (isFilterOptionSelected: boolean | number) =>
     isFilterOptionSelected
       ? setStateFunc([...currentFilterState, filterLabel])
       : setStateFunc(_.filter(currentFilterState, o => o !== filterLabel));
@@ -44,12 +63,17 @@ function FiltersCard({
   title,
   selectedFilters,
   options,
-  handleOnFilterSelect = () => {}
+  handleOnFilterSelect = () => () => {}
+}: {
+  title: string,
+  selectedFilters: (string | number)[],
+  options: (PriceFilterOptionMap | YearFilterOptionMap)[],
+  handleOnFilterSelect: (filterLabel: string) => (isFilterOptionSelected: number | boolean) => void
 }) {
-  const isOptionSelected = (selectedFilters, filterLabel) =>
+  const isOptionSelected = (selectedFilters: (string | number)[], filterLabel: string) =>
     _.some(selectedFilters, s => s === filterLabel);
 
-  const renderFilterOptions = options =>
+  const renderFilterOptions = (options: (PriceFilterOptionMap | YearFilterOptionMap)[]) =>
     _.map(options, o => {
       const filterLabel = Object.keys(o)[0];
       return (
@@ -75,6 +99,11 @@ function FiltersOption({
   isSelected = false,
   matchingAlbumsCount = 0,
   handleOnFilterSelect = () => {}
+}: {
+  filterLabel: string,
+  isSelected: boolean | undefined,
+  matchingAlbumsCount: number,
+  handleOnFilterSelect: (isFilterOptionSelected: number | boolean)=> void,
 }) {
   const handleOnChange = () => {
     const nextState = !isSelected;
