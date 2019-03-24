@@ -68,7 +68,10 @@ export const _getMaxPrice = (albums: Album[]): number =>
 // Methods for filtering albums by price filters
 // =============================================
 
-export const _doesAlbumIncludeInPriceFilters = (album: Album, priceIntervals: (string)[]): boolean => {
+export const _doesAlbumIncludeInPriceFilters = (
+  album: Album,
+  priceIntervals: (string)[]
+): boolean => {
   const price: number = _.chain(album)
     .get("price.amount", 0)
     .toNumber()
@@ -96,7 +99,9 @@ export const _filterAlbumsByMultiplePriceFilters = (
   return multipleFilterResults;
 };
 
-export const _getSelectedPriceFiltersOptionsMaps = (priceFilters: string[]): PriceFilterOptionMap[] => {
+export const _getSelectedPriceFiltersOptionsMaps = (
+  priceFilters: string[]
+): PriceFilterOptionMap[] => {
   const priceOptions: PriceFilterOptionMap[] = _.map(priceFilters, (priceInterval: string) =>
     _getMatchingPriceFilterOptionsMap([], priceInterval)
   );
@@ -118,7 +123,10 @@ export const _getMatchingPriceFilterOptionsMap = (
   };
 };
 
-export const _getAlbumPriceInterval = (album: Album, priceIntervals: PriceIntervalObject[]): string => {
+export const _getAlbumPriceInterval = (
+  album: Album,
+  priceIntervals: PriceIntervalObject[]
+): string => {
   let intervalLabel: string = "0-5";
   const price = _.chain(album)
     .get("price.amount", 0)

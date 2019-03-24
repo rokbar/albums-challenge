@@ -1,11 +1,13 @@
 import { useEffect } from "react";
 import logic from "../logic";
+import logic$ from "../logic/index$";
 import Album from "../types/Album";
 import { FilterOptions, YearFilterOptionMap, PriceFilterOptionMap } from "../types/FilterOption";
 import useObservable from "../hooks/useObservable";
 import { albums$, filteredAlbums$, isFiltered$ } from "../logic/observables";
 
 const { filterAlbumsByBothFiltersGroups, getPriceFilterOptions, getYearFilterOptions } = logic;
+const { filterAlbumsByBothFiltersGroups$ } = logic$;
 
 function useFilterOptions({
   yearFilters,
@@ -19,6 +21,11 @@ function useFilterOptions({
   const isFiltered = useObservable(isFiltered$, isFiltered$.getValue());
 
   useEffect(() => {
+    filterAlbumsByBothFiltersGroups$(
+      albums$,
+      yearFilters,
+      priceFilters,
+    );
     const isFiltered: boolean = !!yearFilters.length || !!priceFilters.length;
     const filteredAlbumsByBothFilters: Album[] = filterAlbumsByBothFiltersGroups(
       albums,
