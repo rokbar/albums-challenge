@@ -1,15 +1,12 @@
-import React, { setGlobal } from 'reactn';
+import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 import MainPage from './components/MainPage';
+import { initializeGlobalObservables } from './logic/observables';
 import * as serviceWorker from './serviceWorker';
 
 // initialize global state;
-setGlobal({
-  albums: [],
-  filteredAlbums: [],
-  isFiltered: false,
-});
+initializeGlobalObservables();
 
 ReactDOM.render(<MainPage />, document.getElementById('root'));
 

@@ -1,10 +1,9 @@
-import { useGlobal } from "reactn";
 import { useEffect } from "react";
 import logic from "../logic";
 import Album from "../types/Album";
 import { FilterOptions, YearFilterOptionMap, PriceFilterOptionMap } from "../types/FilterOption";
-import { GlobalState } from "../types/State";
-import observable$ from "../logic/observable";
+import useObservable from "../hooks/useObservable";
+import { albums$, filteredAlbums$, isFiltered$ } from "../logic/observables";
 
 const { filterAlbumsByBothFiltersGroups, getPriceFilterOptions, getYearFilterOptions } = logic;
 
@@ -15,21 +14,19 @@ function useFilterOptions({
   yearFilters: (string | number)[];
   priceFilters: string[];
 }): FilterOptions {
-  // const [albums]: GlobalState<Album[]> = useGlobal("albums");
-  // const [filteredAlbums, setFilteredAlbums]: GlobalState<Album[]> = useGlobal("filteredAlbums");
-  // const [isFiltered, setIsFiltered]: GlobalState<boolean | number> = useGlobal("isFiltered");
-  const { albums, filteredAlbums, isFiltered } = observable$.getValue();
+  const albums = useObservable(albums$, albums$.getValue());
+  const filteredAlbums = useObservable(filteredAlbums$, filteredAlbums$.getValue());
+  const isFiltered = useObservable(isFiltered$, isFiltered$.getValue());
 
   useEffect(() => {
-    const isFiltered: number | boolean = yearFilters.length || priceFilters.length;
+    const isFiltered: boolean = !!yearFilters.length || !!priceFilters.length;
     const filteredAlbumsByBothFilters: Album[] = filterAlbumsByBothFiltersGroups(
       albums,
       yearFilters,
       priceFilters
     );
-    // setFilteredAlbums(filteredAlbumsByBothFilters);
-    // setIsFiltered(isFiltered);
-    observable$.next({ albums, filteredAlbums: filteredAlbumsByBothFilters, isFiltered });
+    filteredAlbums$.next(filteredAlbumsByBothFilters);
+    isFiltered$.next(isFiltered);
   }, [yearFilters, priceFilters]);
 
   const visibleAlbums: Album[] = isFiltered ? filteredAlbums : albums;

@@ -1,17 +1,12 @@
-import { useGlobal } from "reactn";
 import React, { useState, useEffect, ReactElement } from "react";
-import { BehaviorSubject, combineLatest } from 'rxjs';
 import _ from "lodash";
 import AlbumCard from "./AlbumCard";
 import { getAlbums } from "../../api/albums";
 import Album from "../../types/Album";
-import { GlobalState, State } from "../../types/State";
-import observable from "../../logic/observable";
+import { State } from "../../types/State";
+import { albums$, filteredAlbums$, isFiltered$ } from "../../logic/observables";
 import useObservable from "../../hooks/useObservable";
 import "./AlbumsListSection.css";
-
-const observable$ = observable;
-// observable$.subscribe(value => console.log(value));
 
 function AlbumsListSection() {
   return (
@@ -21,19 +16,10 @@ function AlbumsListSection() {
   );
 }
 
-const initialAlbums: Album[] = [];
-const albums$ = new BehaviorSubject(initialAlbums);
-const filteredAlbums$ = new BehaviorSubject([]);
-const isFiltered$ = new BehaviorSubject(false);
-const combinedState$ = combineLatest(albums$, filteredAlbums$);
-
 function AlbumsList() {
   const albums = useObservable(albums$, albums$.getValue());
   const filteredAlbums = useObservable(filteredAlbums$, filteredAlbums$.getValue());
   const isFiltered = useObservable(isFiltered$, isFiltered$.getValue());
-  // const [albums, setAlbums]: GlobalState<Album[]> = useGlobal("albums");
-  // const [filteredAlbums]: GlobalState<Album[]> = useGlobal("filteredAlbums");
-  // const [isFiltered]: GlobalState<boolean> = useGlobal("isFiltered");
   const [isFetching, setIsFetching]: State<boolean> = useState(false);
 
   const visibleAlbums: Album[] = isFiltered ? filteredAlbums : albums;
@@ -42,7 +28,6 @@ function AlbumsList() {
     (async () => {
       setIsFetching(true);
       const data = await getAlbums();
-      // setAlbums(data);
       setIsFetching(false);
       albums$.next(data);
     })();
